@@ -1,0 +1,33 @@
+name: CI testing
+
+on:
+    push:
+        branches:
+            - main 
+            - dev
+    pull_request:
+        branches:
+            - main
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+
+        strategy:
+            matrix:
+                go-version: [1.25]
+        
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v3
+
+            - name: Set up Go 
+              uses: actions/setup-go@v4
+              with:
+                go-version: ${{ matrix.go-version }}
+
+            - name: Enable Go modules
+              run: go mod tidy
+
+            - name: Run tests
+              run: go test -v ./...

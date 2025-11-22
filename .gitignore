@@ -1,0 +1,30 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Build directories
+/bin/
+/build/
+/dist/
+
+# Go modules
+/vendor/
+
+# IDE/editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*.DS_Store
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Dependency directories
+Godeps/
