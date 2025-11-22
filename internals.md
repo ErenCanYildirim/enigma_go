@@ -57,7 +57,7 @@ Features:
     - ensures that encryption is reciprocal
     - cannot be configured dynamically in historical mode
 
-## Plugboard:
+## 3. Plugboard:
 
 type Plugboard struct {
     wiring [26]int 

@@ -5,16 +5,16 @@ import "fmt"
 //this is a demo to show how to use the enigma package
 
 func main() {
-	fmt.Println("Enigma library demo \n")
+	fmt.Println("Enigma library demo")
 	fmt.Println("Basic Usage")
 	basicExample()
 
-	fmt.Println("\n" + "===============" + "\n")
+	fmt.Println("\n" + "===============")
 
 	fmt.Println("With plugboard configuration")
 	plugboardExample()
 
-	fmt.Println("\n" + "===============" + "\n")
+	fmt.Println("\n" + "===============")
 
 	fmt.Println("Historical Wehrmacht setup")
 	historicalExample()
