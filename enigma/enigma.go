@@ -240,7 +240,7 @@ func (e *Enigma) stepRotors() {
 	if middle.AtNotch() {
 		middle.Step()
 		left.Step()
-	} else {
+	} else if right.AtNotch() {
 		middle.Step()
 	}
 	right.Step()

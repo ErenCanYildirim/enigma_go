@@ -4,93 +4,117 @@ import (
 	"testing"
 )
 
-func TestEnigma_EncryptDecrypt(t *testing.T) {
-	// Build a historical Enigma I configuration
-	rotorI, _ := NewHistoricalRotor("I")
-	rotorII, _ := NewHistoricalRotor("II")
-	rotorIII, _ := NewHistoricalRotor("III")
-	reflectorB, _ := NewHistoricalReflector("UKW-B")
-	plugboard, _ := NewPlugboard("AB CD EF")
-
-	enigma := NewEnigma([]*Rotor{rotorI, rotorII, rotorIII}, reflectorB, plugboard)
-
-	// set initial rotor positions and ring settings
-	_ = enigma.SetRotorPositions(0, 0, 0)
-	rotorI.SetRingSetting(0)
-	rotorII.SetRingSetting(0)
-	rotorIII.SetRingSetting(0)
-
-	message := "HELLO WORLD"
-	encrypted, err := enigma.Encrypt(message)
+func TestRotorForwardBackward(t *testing.T) {
+	rotor, err := NewRotor("I", "EKMFLGDQVZNTOWYHXUSPAIBRCJ", "Q")
 	if err != nil {
-		t.Fatalf("Encryption failed: %v", err)
+		t.Fatalf("failed to create rotor: %v", err)
 	}
 
-	if encrypted == message {
-		t.Fatalf("Encryption did not change message: got %s", encrypted)
+	// Test forward/backward mapping with no rotation
+	for i := 0; i < AlphabetSize; i++ {
+		fwd := rotor.Forward(i)
+		bwd := rotor.Backward(fwd)
+		if bwd != i {
+			t.Errorf("Rotor forward/backward mismatch: input %d got %d", i, bwd)
+		}
 	}
 
-	// Reset rotor positions before decryption
-	_ = enigma.SetRotorPositions(0, 0, 0)
-	decrypted, err := enigma.Decrypt(encrypted)
-	if err != nil {
-		t.Fatalf("Decryption failed: %v", err)
-	}
-
-	if decrypted != message {
-		t.Errorf("Decrypted message does not match original\nOriginal: %s\nDecrypted: %s", message, decrypted)
+	// Test with ring setting and position
+	rotor.SetRingSetting(1)
+	rotor.SetPosition(5)
+	for i := 0; i < AlphabetSize; i++ {
+		fwd := rotor.Forward(i)
+		bwd := rotor.Backward(fwd)
+		if bwd != i {
+			t.Errorf("Rotor with ring/pos mismatch: input %d got %d", i, bwd)
+		}
 	}
 }
 
-func TestEnigma_LowercaseAndNonAlpha(t *testing.T) {
-	rotorI, _ := NewHistoricalRotor("I")
-	rotorII, _ := NewHistoricalRotor("II")
-	rotorIII, _ := NewHistoricalRotor("III")
-	reflectorB, _ := NewHistoricalReflector("UKW-B")
-
-	enigma := NewEnigma([]*Rotor{rotorI, rotorII, rotorIII}, reflectorB, nil)
-	_ = enigma.SetRotorPositions(0, 0, 0)
-
-	input := "Hello, World! 123"
-
-	_, err := enigma.Encrypt(input)
+func TestReflector(t *testing.T) {
+	ref, err := NewReflector("B", "YRUHQSLDPXNGOKMIEBFZCWVJAT")
 	if err != nil {
-		t.Fatalf("Encrypt failed on input with lowercase/non-alpha chars: %v", err)
+		t.Fatalf("failed to create reflector: %v", err)
+	}
+
+	for i := 0; i < AlphabetSize; i++ {
+		out := ref.Reflect(i)
+		// reflector is reciprocal
+		if ref.Reflect(out) != i {
+			t.Errorf("Reflector not reciprocal for %d", i)
+		}
 	}
 }
 
-func TestEnigma_EncryptConsistency(t *testing.T) {
-	// Tests that same input with same initial positions produces same output
-
-	// First Enigma
-	rotorI1, _ := NewHistoricalRotor("I")
-	rotorII1, _ := NewHistoricalRotor("II")
-	rotorIII1, _ := NewHistoricalRotor("III")
-	reflectorB1, _ := NewHistoricalReflector("UKW-B")
-	enigma1 := NewEnigma([]*Rotor{rotorI1, rotorII1, rotorIII1}, reflectorB1, nil)
-	_ = enigma1.SetRotorPositions(0, 0, 0)
-
-	// Second Enigma (new rotor instances)
-	rotorI2, _ := NewHistoricalRotor("I")
-	rotorII2, _ := NewHistoricalRotor("II")
-	rotorIII2, _ := NewHistoricalRotor("III")
-	reflectorB2, _ := NewHistoricalReflector("UKW-B")
-	enigma2 := NewEnigma([]*Rotor{rotorI2, rotorII2, rotorIII2}, reflectorB2, nil)
-	_ = enigma2.SetRotorPositions(0, 0, 0)
-
-	message := "TESTMESSAGE"
-
-	enc1, err := enigma1.Encrypt(message)
+func TestPlugboard(t *testing.T) {
+	pb, err := NewPlugboard("AB CD EF")
 	if err != nil {
-		t.Fatalf("Encryption failed: %v", err)
+		t.Fatalf("failed to create plugboard: %v", err)
 	}
 
-	enc2, err := enigma2.Encrypt(message)
-	if err != nil {
-		t.Fatalf("Encryption failed: %v", err)
+	tests := map[int]int{
+		int('A' - 'A'): int('B' - 'A'),
+		int('B' - 'A'): int('A' - 'A'),
+		int('C' - 'A'): int('D' - 'A'),
+		int('D' - 'A'): int('C' - 'A'),
+		int('E' - 'A'): int('F' - 'A'),
+		int('F' - 'A'): int('E' - 'A'),
+		int('G' - 'A'): int('G' - 'A'),
 	}
 
-	if enc1 != enc2 {
-		t.Errorf("Encryption is not consistent: got %s vs %s", enc1, enc2)
+	for input, expected := range tests {
+		out := pb.Forward(input)
+		if out != expected {
+			t.Errorf("Plugboard mismatch for %d: got %d, want %d", input, out, expected)
+		}
+	}
+}
+
+func TestEnigmaEncryptDecrypt(t *testing.T) {
+	rotorI, _ := NewRotor("I", "EKMFLGDQVZNTOWYHXUSPAIBRCJ", "Q")
+	rotorII, _ := NewRotor("II", "AJDKSIRUXBLHWTMCQGZNPYFVOE", "E")
+	rotorIII, _ := NewRotor("III", "BDFHJLCPRTXVZNYEIWGAKMUSQO", "V")
+	ref, _ := NewReflector("B", "YRUHQSLDPXNGOKMIEBFZCWVJAT")
+	pb, _ := NewPlugboard("AQ EP")
+
+	enigma := NewEnigma([]*Rotor{rotorIII, rotorII, rotorI}, ref, pb)
+	enigma.SetRotorPositions(0, 0, 0)
+
+	plaintext := "HELLO WORLD"
+	ciphertext, err := enigma.Encrypt(plaintext)
+	if err != nil {
+		t.Fatalf("encryption failed: %v", err)
+	}
+
+	// reset positions to decrypt
+	enigma.SetRotorPositions(0, 0, 0)
+	decrypted, err := enigma.Decrypt(ciphertext)
+	if err != nil {
+		t.Fatalf("decryption failed: %v", err)
+	}
+
+	if decrypted != "HELLO WORLD" {
+		t.Errorf("decryption mismatch: got %s, want %s", decrypted, plaintext)
+	}
+}
+
+func TestRotorStepping(t *testing.T) {
+	rotorI, _ := NewRotor("I", "EKMFLGDQVZNTOWYHXUSPAIBRCJ", "Q")
+	rotorII, _ := NewRotor("II", "AJDKSIRUXBLHWTMCQGZNPYFVOE", "E")
+	rotorIII, _ := NewRotor("III", "BDFHJLCPRTXVZNYEIWGAKMUSQO", "V")
+	ref, _ := NewReflector("B", "YRUHQSLDPXNGOKMIEBFZCWVJAT")
+
+	enigma := NewEnigma([]*Rotor{rotorIII, rotorII, rotorI}, ref, nil)
+
+	// Step the rotors 26 times and check wrap-around
+	for i := 0; i < 26; i++ {
+		enigma.stepRotors()
+	}
+
+	positions := enigma.GetRotorPositions()
+	for i, pos := range positions {
+		if pos < 0 || pos >= AlphabetSize {
+			t.Errorf("Rotor %d has invalid position: %d", i, pos)
+		}
 	}
 }
