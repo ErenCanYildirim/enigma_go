@@ -1,6 +1,6 @@
-![Go](https://blog.golang.org/go-brand/Go-Logo/PNG/Go-Logo_Blue.png)
-
 # Enigma Go
+
+<img src="https://blog.golang.org/go-brand/Go-Logo/PNG/Go-Logo_Blue.png" width="100" alt="Go Logo">
 
 A full **Go implementation of the WWII German Enigma I machine**, including rotors, reflectors, ring settings, and plugboard configuration. This simulator follows the Enigma I configuration used by the German Wehrmacht.
 
